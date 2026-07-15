@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Imagem → Padrão de Contas</title>
+<style>
+  :root{
+    --bg: #0d0f12;
+    --panel: #16191d;
+    --grid-line: #22262c;
+    --accent: #f9c74f;
+    --accent-2: #f472b6;
+    --text: #e6e8eb;
+    --muted: #8a9099;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    padding: 28px 16px 80px;
+  }
+  header{ max-width: 980px; margin: 0 auto 24px; }
+  .eyebrow{
+    display:inline-block;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--bg);
+    background: var(--accent);
+    padding: 3px 8px;
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+  h1{ font-size: clamp(24px, 4.5vw, 36px); margin: 0 0 8px; letter-spacing: -0.5px; }
+  h1 span{ color: var(--accent-2); }
+  header p{ color: var(--muted); max-width: 560px; line-height: 1.5; font-size: 14px; margin:0; }
+
+  .app{ max-width: 980px; margin: 0 auto; display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+  @media (max-width: 760px){ .app{ grid-template-columns: 1fr; } }
+
+  .panel{ background: var(--panel); border: 1px solid var(--grid-line); padding: 20px; }
+  .panel h2{
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 16px; border-bottom: 1px solid var(--grid-line); padding-bottom: 10px;
+  }
+
+  .drop{
+    border: 1px dashed var(--grid-line); padding: 22px 12px; text-align: center; cursor: pointer;
+    font-size: 13px; color: var(--muted); margin-bottom: 20px;
+  }
+  .drop:hover, .drop.drag{ border-color: var(--accent); color: var(--accent); }
+  .drop input{ display:none; }
+
+  .bg-toggle{
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-size: 12px; color: var(--muted); margin-bottom: 6px;
+  }
+  .bg-toggle input{ width: auto; accent-color: var(--accent); cursor: pointer; }
+  .bg-toggle:hover{ color: var(--text); }
+
+  .field{ margin-bottom: 18px; }
+  .field label{ display:flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .field label b{ color: var(--accent); font-weight: 600; }
+
+  .dims{ display:flex; gap: 10px; }
+  .dims input[type=number]{
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--grid-line);
+    padding: 8px; font-family: inherit; font-size: 13px;
+  }
+
+  input[type=range]{
+    width: 100%; -webkit-appearance: none; height: 3px; background: var(--grid-line); outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance: none; width: 14px; height: 14px; background: var(--accent); cursor: pointer; border-radius: 50%;
+  }
+  input[type=range]::-moz-range-thumb{
+    width: 14px; height: 14px; background: var(--accent); cursor: pointer; border: none; border-radius: 50%;
+  }
+
+  select{
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--grid-line);
+    padding: 8px; font-family: inherit; font-size: 13px;
+  }
+
+  .hint{ font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+
+  .presets{ display:flex; gap:6px; flex-wrap: wrap; margin-top: 8px; }
+  .presets button{
+    background: var(--bg); border: 1px solid var(--grid-line); color: var(--muted);
+    font-family: inherit; font-size: 11px; padding: 5px 8px; cursor: pointer;
+  }
+  .presets button:hover{ border-color: var(--accent); color: var(--accent); }
+
+  button.primary{
+    width: 100%; background: var(--accent); color: #1a1300; border: none; padding: 12px;
+    font-family: inherit; font-weight: 700; font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; margin-top: 4px;
+  }
+  button.primary:disabled{ background: var(--grid-line); color: var(--muted); cursor: not-allowed; }
+
+  button.secondary{
+    width: 100%; background: transparent; color: var(--muted); border: 1px solid var(--grid-line); padding: 9px;
+    font-family: inherit; font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; margin-top: 8px;
+  }
+  button.secondary:hover{ border-color: var(--accent); color: var(--accent); }
+
+  .crop-wrap{
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--grid-line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom: 10px;
+    touch-action: none;
+    min-height: 120px;
+  }
+  #cropCanvas{ display:block; max-width: 100%; }
+  .crop-empty{ color: var(--muted); font-size: 12px; padding: 30px 10px; text-align:center; }
+
+  .original-wrap{
+    background: var(--bg);
+    border: 1px solid var(--grid-line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom: 6px;
+    min-height: 100px;
+    max-height: 180px;
+    overflow: hidden;
+  }
+  #originalSample{ display:block; max-width: 100%; max-height: 180px; object-fit: contain; }
+
+  .canvas-wrap{
+    background: var(--panel); border: 1px solid var(--grid-line); min-height: 420px;
+    display:flex; align-items:center; justify-content:center; padding: 20px; overflow:auto;
+  }
+  #canvas{ image-rendering: pixelated; max-width: 100%; }
+
+  .empty{ color: var(--muted); font-size: 13px; text-align:center; padding: 20px; }
+  .empty b{ color: var(--accent-2); }
+
+  .legend{
+    max-width: 980px; margin: 20px auto 0; background: var(--panel); border: 1px solid var(--grid-line);
+    padding: 18px 20px; display:none;
+  }
+  .legend h2{
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 14px; border-bottom: 1px solid var(--grid-line); padding-bottom: 10px;
+  }
+  .legend-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .legend-item{ display:flex; align-items:center; gap:8px; font-size: 12px; }
+  .swatch{ width: 18px; height: 18px; border-radius: 50%; flex-shrink:0; border: 1px solid rgba(255,255,255,0.15); }
+  .legend-item b{ color: var(--text); }
+  .legend-item span{ color: var(--muted); }
+
+  .meta{
+    max-width: 980px; margin: 14px auto 0; font-size: 11px; color: var(--muted);
+    display:flex; gap: 20px; flex-wrap: wrap;
+  }
+  .meta span b{ color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="eyebrow">IMG → CONTAS</span>
+  <h1>Imagem para <span>Padrão de Contas</span></h1>
+  <p>Suba qualquer imagem, escolha só o pedaço que quer usar, ajuste o tamanho da grade (pensado pra peças pequenas, tipo chaveiro) e gere o desenho pronto pra montar, já com a lista de cores e quantidades.</p>
+</header>
+
+<div class="app">
+  <div class="panel">
+    <h2>01 · Imagem</h2>
+    <label class="drop" id="dropZone">
+      <input type="file" id="fileInput" accept="image/*">
+      <div id="dropLabel">Clique ou arraste uma imagem aqui</div>
+    </label>
+
+    <label class="bg-toggle">
+      <input type="checkbox" id="removeBgToggle">
+      <span>Isolar objeto (remover fundo automaticamente)</span>
+    </label>
+    <div class="hint" id="removeBgStatus">Baixa um modelo leve na primeira vez (roda local no navegador, sem enviar a imagem pra nenhum servidor).</div>
+
+    <h2>02 · Imagem original</h2>
+    <div class="original-wrap" id="originalWrap">
+      <div class="crop-empty" id="originalEmpty">A amostra da imagem original aparece aqui.</div>
+      <img id="originalSample" style="display:none;" alt="Imagem original">
+    </div>
+    <div class="hint" id="originalDims"></div>
+
+    <h2 style="margin-top:20px;">03 · Área de recorte</h2>
+    <div class="crop-wrap" id="cropWrap">
+      <div class="crop-empty" id="cropEmpty">Envie uma imagem pra escolher o pedaço que quer usar.</div>
+      <canvas id="cropCanvas" style="display:none;"></canvas>
+    </div>
+    <div class="hint">Arraste pra desenhar a área. Puxe os cantos pra ajustar o tamanho, ou arraste o meio pra mover — dá pra recortar só um objeto ou pedaço específico da foto.</div>
+    <button class="secondary" id="resetCropBtn">Usar imagem inteira</button>
+
+    <h2 style="margin-top:20px;">04 · Resolução</h2>
+    <div class="field">
+      <label>Resolução da grade <b id="resolutionVal">20×20</b></label>
+      <input type="range" id="resolutionSlider" min="5" max="60" value="20">
+      <div class="hint">Arraste pra ajustar rápido. Menos contas = desenho mais simples; mais contas = mais detalhe.</div>
+    </div>
+    <div class="field">
+      <label>Largura × Altura (em contas)</label>
+      <div class="dims">
+        <input type="number" id="gridW" min="5" max="60" value="20">
+        <input type="number" id="gridH" min="5" max="60" value="20">
+      </div>
+      <div class="presets">
+        <button data-w="10" data-h="10">10×10</button>
+        <button data-w="15" data-h="15">15×15</button>
+        <button data-w="20" data-h="20">20×20</button>
+        <button data-w="29" data-h="29">29×29 (placa padrão)</button>
+      </div>
+      <div class="hint">Chaveiro pequeno costuma ficar bem entre 10×10 e 20×20.</div>
+    </div>
+
+    <h2>05 · Cores</h2>
+    <div class="field">
+      <label>Nº de cores <b id="colorsVal">12</b></label>
+      <input type="range" id="colorsCount" min="2" max="24" value="12">
+      <div class="hint">Menos cores = mais fácil de montar e mais barato.</div>
+    </div>
+
+    <div class="field">
+      <label>Simplificar tons <b id="simplifyVal">0%</b></label>
+      <input type="range" id="simplifyTolerance" min="0" max="100" value="0">
+      <div class="hint">Junta tons parecidos (ex: vários laranjas viram um só), mas mantém o contraste entre áreas diferentes — o contorno do desenho não se perde.</div>
+    </div>
+
+    <div class="field">
+      <label>Paleta</label>
+      <select id="paletteMode">
+        <option value="auto">Automática (cores da imagem)</option>
+        <option value="hama">Padrão Hama/Perler (fixa)</option>
+      </select>
+    </div>
+
+    <button class="primary" id="downloadBtn" disabled>Baixar padrão (PNG)</button>
+  </div>
+
+  <div class="canvas-wrap" id="canvasWrap">
+    <div class="empty" id="emptyState">Nenhuma imagem carregada.<br>Envie um arquivo pra ver o <b>padrão de contas</b>.</div>
+    <canvas id="canvas" style="display:none;"></canvas>
+  </div>
+</div>
+
+<div class="meta" id="metaInfo"></div>
+
+<div class="legend" id="legendPanel">
+  <h2>Legenda · quantas contas de cada cor</h2>
+  <div class="legend-grid" id="legendGrid"></div>
+</div>
+
+<script type="module">
+import { removeBackground } from 'https://esm.sh/@imgly/background-removal';
+
+const fileInput = document.getElementById('fileInput');
+const dropZone = document.getElementById('dropZone');
+const dropLabel = document.getElementById('dropLabel');
+const removeBgToggle = document.getElementById('removeBgToggle');
+const removeBgStatus = document.getElementById('removeBgStatus');
+const DEFAULT_BG_HINT = removeBgStatus.textContent;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const emptyState = document.getElementById('emptyState');
+const gridW = document.getElementById('gridW');
+const gridH = document.getElementById('gridH');
+const colorsCount = document.getElementById('colorsCount');
+const colorsVal = document.getElementById('colorsVal');
+const simplifyTolerance = document.getElementById('simplifyTolerance');
+const simplifyVal = document.getElementById('simplifyVal');
+const paletteMode = document.getElementById('paletteMode');
+const downloadBtn = document.getElementById('downloadBtn');
+const metaInfo = document.getElementById('metaInfo');
+const legendPanel = document.getElementById('legendPanel');
+const legendGrid = document.getElementById('legendGrid');
+const resetCropBtn = document.getElementById('resetCropBtn');
+const originalSample = document.getElementById('originalSample');
+const originalEmpty = document.getElementById('originalEmpty');
+const originalDims = document.getElementById('originalDims');
+const resolutionSlider = document.getElementById('resolutionSlider');
+const resolutionVal = document.getElementById('resolutionVal');
+
+const cropCanvas = document.getElementById('cropCanvas');
+const cropCtx = cropCanvas.getContext('2d');
+const cropEmpty = document.getElementById('cropEmpty');
+const cropWrap = document.getElementById('cropWrap');
+
+let originalImage = null;
+let dispScale = 1;
+let crop = { x: 0, y: 0, w: 0, h: 0 };
+
+const HAMA_PALETTE = [
+  ['Branco', [255,255,255]], ['Preto', [0,0,0]], ['Cinza', [148,148,148]],
+  ['Vermelho', [201,30,42]], ['Laranja', [237,116,35]], ['Amarelo', [250,213,44]],
+  ['Amarelo claro', [252,238,150]], ['Verde', [24,133,58]], ['Verde claro', [140,198,90]],
+  ['Verde água', [60,177,150]], ['Azul', [30,90,168]], ['Azul claro', [107,175,222]],
+  ['Roxo', [117,74,152]], ['Rosa', [237,131,169]], ['Rosa claro', [248,196,207]],
+  ['Marrom', [122,79,45]], ['Bege', [222,190,150]], ['Vinho', [130,30,50]],
+  ['Turquesa', [30,160,180]], ['Salmão', [240,140,110]], ['Dourado', [200,160,50]],
+  ['Verde escuro', [30,80,40]], ['Azul marinho', [20,40,90]], ['Cinza claro', [200,200,200]]
+];
+
+function updateLabels(){
+  colorsVal.textContent = colorsCount.value;
+  resolutionVal.textContent = gridW.value + '×' + gridH.value;
+  simplifyVal.textContent = simplifyTolerance.value + '%';
+}
+
+function drawCropOverlay(){
+  if(!originalImage) return;
+  cropCtx.clearRect(0,0,cropCanvas.width, cropCanvas.height);
+  cropCtx.drawImage(originalImage, 0, 0, cropCanvas.width, cropCanvas.height);
+
+  cropCtx.fillStyle = 'rgba(0,0,0,0.55)';
+  cropCtx.fillRect(0, 0, cropCanvas.width, crop.y);
+  cropCtx.fillRect(0, crop.y+crop.h, cropCanvas.width, cropCanvas.height-(crop.y+crop.h));
+  cropCtx.fillRect(0, crop.y, crop.x, crop.h);
+  cropCtx.fillRect(crop.x+crop.w, crop.y, cropCanvas.width-(crop.x+crop.w), crop.h);
+
+  cropCtx.strokeStyle = '#f9c74f';
+  cropCtx.lineWidth = 2;
+  cropCtx.strokeRect(crop.x, crop.y, crop.w, crop.h);
+
+  const hs = 8;
+  const corners = [
+    [crop.x, crop.y], [crop.x+crop.w, crop.y],
+    [crop.x, crop.y+crop.h], [crop.x+crop.w, crop.y+crop.h]
+  ];
+  cropCtx.fillStyle = '#f9c74f';
+  for(const c of corners){
+    cropCtx.fillRect(c[0]-hs/2, c[1]-hs/2, hs, hs);
+  }
+}
+
+function setupCropCanvas(){
+  const maxW = Math.min(cropWrap.clientWidth || 260, 320);
+  const scale = maxW / originalImage.width;
+  cropCanvas.width = Math.round(originalImage.width * scale);
+  cropCanvas.height = Math.round(originalImage.height * scale);
+  dispScale = originalImage.width / cropCanvas.width;
+
+  crop = { x: 0, y: 0, w: cropCanvas.width, h: cropCanvas.height };
+  cropCanvas.style.display = 'block';
+  cropEmpty.style.display = 'none';
+  drawCropOverlay();
+}
+
+function getPos(evt){
+  const rect = cropCanvas.getBoundingClientRect();
+  const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+  const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+  const scaleX = cropCanvas.width / rect.width;
+  const scaleY = cropCanvas.height / rect.height;
+  return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+}
+
+let dragMode = null;
+let dragStart = null;
+let cropStart = null;
+
+function hitTestHandle(pos){
+  const hs = 12;
+  const corners = {
+    tl: [crop.x, crop.y], tr: [crop.x+crop.w, crop.y],
+    bl: [crop.x, crop.y+crop.h], br: [crop.x+crop.w, crop.y+crop.h]
+  };
+  for(const key in corners){
+    const c = corners[key];
+    if(Math.abs(pos.x-c[0]) < hs && Math.abs(pos.y-c[1]) < hs) return key;
+  }
+  if(pos.x > crop.x && pos.x < crop.x+crop.w && pos.y > crop.y && pos.y < crop.y+crop.h) return 'move';
+  return 'new';
+}
+
+function onDragStart(evt){
+  if(!originalImage) return;
+  evt.preventDefault();
+  const pos = getPos(evt);
+  dragMode = hitTestHandle(pos);
+  dragStart = pos;
+  cropStart = { x: crop.x, y: crop.y, w: crop.w, h: crop.h };
+  if(dragMode === 'new'){
+    crop = { x: pos.x, y: pos.y, w: 0, h: 0 };
+  }
+}
+
+function clampCrop(){
+  crop.x = Math.max(0, Math.min(crop.x, cropCanvas.width));
+  crop.y = Math.max(0, Math.min(crop.y, cropCanvas.height));
+  crop.w = Math.max(10, Math.min(crop.w, cropCanvas.width - crop.x));
+  crop.h = Math.max(10, Math.min(crop.h, cropCanvas.height - crop.y));
+}
+
+function onDragMove(evt){
+  if(!dragMode || !originalImage) return;
+  evt.preventDefault();
+  const pos = getPos(evt);
+  const dx = pos.x - dragStart.x;
+  const dy = pos.y - dragStart.y;
+
+  if(dragMode === 'new'){
+    crop.w = pos.x - crop.x;
+    crop.h = pos.y - crop.y;
+    if(crop.w < 0){ crop.x = pos.x; crop.w = Math.abs(crop.w); }
+    if(crop.h < 0){ crop.y = pos.y; crop.h = Math.abs(crop.h); }
+  } else if(dragMode === 'move'){
+    crop.x = cropStart.x + dx;
+    crop.y = cropStart.y + dy;
+  } else if(dragMode === 'tl'){
+    crop.x = cropStart.x + dx; crop.y = cropStart.y + dy;
+    crop.w = cropStart.w - dx; crop.h = cropStart.h - dy;
+  } else if(dragMode === 'tr'){
+    crop.y = cropStart.y + dy;
+    crop.w = cropStart.w + dx; crop.h = cropStart.h - dy;
+  } else if(dragMode === 'bl'){
+    crop.x = cropStart.x + dx;
+    crop.w = cropStart.w - dx; crop.h = cropStart.h + dy;
+  } else if(dragMode === 'br'){
+    crop.w = cropStart.w + dx; crop.h = cropStart.h + dy;
+  }
+
+  clampCrop();
+  drawCropOverlay();
+}
+
+function onDragEnd(){
+  if(!dragMode) return;
+  dragMode = null;
+  render();
+}
+
+cropCanvas.addEventListener('mousedown', onDragStart);
+cropCanvas.addEventListener('mousemove', onDragMove);
+window.addEventListener('mouseup', onDragEnd);
+cropCanvas.addEventListener('touchstart', onDragStart, { passive:false });
+cropCanvas.addEventListener('touchmove', onDragMove, { passive:false });
+window.addEventListener('touchend', onDragEnd);
+
+resetCropBtn.addEventListener('click', () => {
+  if(!originalImage) return;
+  crop = { x:0, y:0, w: cropCanvas.width, h: cropCanvas.height };
+  drawCropOverlay();
+  render();
+});
+
+function buildAutoPalette(pixels, k){
+  const samples = [];
+  for(let i=0;i<pixels.length;i+=4){
+    samples.push([pixels[i], pixels[i+1], pixels[i+2]]);
+  }
+  if(samples.length === 0) return { colors: [], weights: [] };
+  let centroids = [];
+  for(let i=0;i<k;i++){
+    centroids.push(samples[Math.floor(i * samples.length / k)].slice());
+  }
+  let weights = centroids.map(() => 0);
+  for(let iter=0; iter<6; iter++){
+    const sums = centroids.map(() => [0,0,0,0]);
+    for(const p of samples){
+      let best=0, bestDist=Infinity;
+      for(let c=0;c<centroids.length;c++){
+        const cc = centroids[c];
+        const d = (p[0]-cc[0])**2 + (p[1]-cc[1])**2 + (p[2]-cc[2])**2;
+        if(d<bestDist){ bestDist=d; best=c; }
+      }
+      sums[best][0]+=p[0]; sums[best][1]+=p[1]; sums[best][2]+=p[2]; sums[best][3]++;
+    }
+    centroids = centroids.map((c,i) => sums[i][3] > 0
+      ? [Math.round(sums[i][0]/sums[i][3]), Math.round(sums[i][1]/sums[i][3]), Math.round(sums[i][2]/sums[i][3])]
+      : c);
+    weights = sums.map(s => s[3]);
+  }
+  return { colors: centroids, weights: weights };
+}
+
+// Merges palette colors that are close to each other (similar tones),
+// weighted by how much each color is actually used, so a strong color
+// "wins" over a faint variant instead of the average sliding toward it.
+// This keeps the contrast between genuinely different regions (the
+// contour) while collapsing shades that were basically the same tone.
+function mergeSimilarColors(colors, weights, tolerancePercent){
+  if(tolerancePercent <= 0 || colors.length <= 1){
+    return colors.map((c, i) => ({ color: c, weight: weights[i] || 1 }));
+  }
+  const threshold = (tolerancePercent / 100) * 140; // max useful merge radius in RGB distance
+  let clusters = colors.map((c, i) => ({ color: c.slice(), weight: weights[i] || 1 }));
+
+  let merged = true;
+  while(merged){
+    merged = false;
+    outer:
+    for(let i=0; i<clusters.length; i++){
+      for(let j=i+1; j<clusters.length; j++){
+        const a = clusters[i], b = clusters[j];
+        const d = Math.sqrt(
+          (a.color[0]-b.color[0])**2 + (a.color[1]-b.color[1])**2 + (a.color[2]-b.color[2])**2
+        );
+        if(d < threshold){
+          const totalW = a.weight + b.weight;
+          const newColor = [
+            Math.round((a.color[0]*a.weight + b.color[0]*b.weight) / totalW),
+            Math.round((a.color[1]*a.weight + b.color[1]*b.weight) / totalW),
+            Math.round((a.color[2]*a.weight + b.color[2]*b.weight) / totalW)
+          ];
+          clusters.splice(j, 1);
+          clusters[i] = { color: newColor, weight: totalW };
+          merged = true;
+          break outer;
+        }
+      }
+    }
+  }
+  return clusters;
+}
+
+function nearestColor(r,g,b,palette){
+  let bestIdx=0, bestDist=Infinity;
+  for(let i=0;i<palette.length;i++){
+    const c = palette[i];
+    const d = (r-c[0])**2 + (g-c[1])**2 + (b-c[2])**2;
+    if(d<bestDist){ bestDist=d; bestIdx=i; }
+  }
+  return bestIdx;
+}
+
+function nameForColor(rgb){
+  let bestName = '', bestDist = Infinity;
+  for(const p of HAMA_PALETTE){
+    const c = p[1];
+    const d = (rgb[0]-c[0])**2 + (rgb[1]-c[1])**2 + (rgb[2]-c[2])**2;
+    if(d<bestDist){ bestDist=d; bestName=p[0]; }
+  }
+  return bestName;
+}
+
+function render(){
+  if(!originalImage) return;
+
+  const w = Math.max(5, Math.min(60, parseInt(gridW.value,10) || 20));
+  const h = Math.max(5, Math.min(60, parseInt(gridH.value,10) || 20));
+  const k = parseInt(colorsCount.value, 10);
+
+  const sx = crop.x * dispScale;
+  const sy = crop.y * dispScale;
+  const sw = crop.w * dispScale;
+  const sh = crop.h * dispScale;
+
+  const tmp = document.createElement('canvas');
+  tmp.width = w; tmp.height = h;
+  const tctx = tmp.getContext('2d');
+  tctx.imageSmoothingEnabled = true;
+  tctx.drawImage(originalImage, sx, sy, sw, sh, 0, 0, w, h);
+  const imgData = tctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+
+  let palette;
+  if(paletteMode.value === 'hama'){
+    palette = HAMA_PALETTE.map(p => p[1]);
+  } else {
+    const built = buildAutoPalette(data, Math.min(k, w*h));
+    const tolerance = parseInt(simplifyTolerance.value, 10);
+    const merged = mergeSimilarColors(built.colors, built.weights, tolerance);
+    palette = merged.map(m => m.color);
+  }
+
+  const beadSize = 26;
+  canvas.width = w * beadSize;
+  canvas.height = h * beadSize;
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#16191d';
+  ctx.fillRect(0,0,canvas.width, canvas.height);
+
+  const colorCounts = new Map();
+
+  for(let y=0; y<h; y++){
+    for(let x=0; x<w; x++){
+      const i = (y*w + x) * 4;
+      const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+      if(a < 30){ continue; }
+
+      const idx = nearestColor(r,g,b,palette);
+      const c = palette[idx];
+      const key = c.join(',');
+      colorCounts.set(key, (colorCounts.get(key)||0) + 1);
+
+      const cx = x*beadSize + beadSize/2;
+      const cy = y*beadSize + beadSize/2;
+      const radius = beadSize/2 - 2;
+
+      const grad = ctx.createRadialGradient(cx-radius*0.35, cy-radius*0.35, radius*0.15, cx, cy, radius);
+      grad.addColorStop(0, 'rgba(255,255,255,0.35)');
+      grad.addColorStop(0.25, 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')');
+      grad.addColorStop(1, 'rgb(' + Math.max(0,c[0]-25) + ',' + Math.max(0,c[1]-25) + ',' + Math.max(0,c[2]-25) + ')');
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI*2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius*0.28, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  canvas.style.display = 'block';
+  emptyState.style.display = 'none';
+
+  const sorted = [...colorCounts.entries()].sort((a,b) => b[1]-a[1]);
+  legendGrid.innerHTML = '';
+  let totalBeads = 0;
+  for(const entry of sorted){
+    const rgb = entry[0].split(',').map(Number);
+    const count = entry[1];
+    totalBeads += count;
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = '<span class="swatch" style="background: rgb(' + rgb.join(',') + ')"></span><b>' + count + '×</b><span>' + nameForColor(rgb) + '</span>';
+    legendGrid.appendChild(item);
+  }
+  legendPanel.style.display = 'block';
+
+  metaInfo.innerHTML =
+    '<span>Grade: <b>' + w + '×' + h + '</b></span>' +
+    '<span>Total de contas: <b>' + totalBeads + '</b></span>' +
+    '<span>Cores usadas: <b>' + sorted.length + '</b></span>' +
+    '<span>Área usada da foto: <b>' + Math.round(sw) + '×' + Math.round(sh) + 'px</b></span>';
+}
+
+async function loadFile(file){
+  if(!file || !file.type.startsWith('image/')) return;
+
+  dropLabel.textContent = 'Carregando ' + file.name + '...';
+  let imgSrc = null;
+
+  if(removeBgToggle.checked){
+    try{
+      removeBgStatus.textContent = 'Isolando o objeto (pode levar alguns segundos na primeira vez, baixando o modelo)...';
+      const resultBlob = await removeBackground(file);
+      imgSrc = URL.createObjectURL(resultBlob);
+      removeBgStatus.textContent = 'Fundo removido. ' + DEFAULT_BG_HINT;
+    } catch(err){
+      console.error('Falha ao remover fundo:', err);
+      removeBgStatus.textContent = 'Não consegui isolar o objeto agora (sem internet ou modelo indisponível) — usando a imagem original.';
+    }
+  }
+
+  const finishLoad = (src) => {
+    const img = new Image();
+    img.onload = () => {
+      originalImage = img;
+      dropLabel.textContent = file.name;
+      downloadBtn.disabled = false;
+      originalSample.src = src;
+      originalSample.style.display = 'block';
+      originalEmpty.style.display = 'none';
+      originalDims.textContent = 'Original: ' + img.width + '×' + img.height + 'px';
+      setupCropCanvas();
+      render();
+    };
+    img.src = src;
+  };
+
+  if(imgSrc){
+    finishLoad(imgSrc);
+  } else {
+    const reader = new FileReader();
+    reader.onload = (e) => finishLoad(e.target.result);
+    reader.readAsDataURL(file);
+  }
+}
+
+fileInput.addEventListener('change', (e) => loadFile(e.target.files[0]));
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('drag');
+  loadFile(e.dataTransfer.files[0]);
+});
+
+gridW.addEventListener('change', () => { syncResolutionFromGrid(); render(); });
+gridH.addEventListener('change', () => { syncResolutionFromGrid(); render(); });
+colorsCount.addEventListener('input', () => { updateLabels(); render(); });
+simplifyTolerance.addEventListener('input', () => { updateLabels(); render(); });
+paletteMode.addEventListener('change', render);
+
+resolutionSlider.addEventListener('input', () => {
+  gridW.value = resolutionSlider.value;
+  gridH.value = resolutionSlider.value;
+  updateLabels();
+  render();
+});
+
+function syncResolutionFromGrid(){
+  const avg = Math.round((parseInt(gridW.value,10) + parseInt(gridH.value,10)) / 2);
+  resolutionSlider.value = Math.max(5, Math.min(60, avg));
+  updateLabels();
+}
+
+document.querySelectorAll('.presets button').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    gridW.value = btn.dataset.w;
+    gridH.value = btn.dataset.h;
+    syncResolutionFromGrid();
+    render();
+  });
+});
+
+downloadBtn.addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.download = 'padrao-contas.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+window.addEventListener('resize', () => {
+  if(originalImage){
+    const oldCrop = { x: crop.x, y: crop.y, w: crop.w, h: crop.h };
+    const oldW = cropCanvas.width, oldH = cropCanvas.height;
+    setupCropCanvas();
+    const rx = cropCanvas.width / oldW, ry = cropCanvas.height / oldH;
+    crop = { x: oldCrop.x*rx, y: oldCrop.y*ry, w: oldCrop.w*rx, h: oldCrop.h*ry };
+    clampCrop();
+    drawCropOverlay();
+  }
+});
+
+updateLabels();
+</script>
+
+</body>
+</html>
